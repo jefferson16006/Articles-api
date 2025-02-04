@@ -7,12 +7,12 @@ const {
 } = require('../errors')
 
 const getAllArticles = async (req, res) => {
-    const article = await Article.find({}).sort('createdAt')
-    req.status(StatusCodes.OK).json({ article, count: article.length })
+    const article = await Article.find({ author: req.user.userID }).sort('createdAt')
+    res.status(StatusCodes.OK).json({ article, count: article.length })
 }
 const getArticle = async (req, res) => {
-    const { id: articleID} = req.params                         
-    const singleArticle = await Article.findById({ articleID })
+    const { id: articleID } = req.params                         
+    const singleArticle = await Article.findById(articleID)
     if(!singleArticle) {
         throw new NotFoundError(`There's no article with the id: ${articleID}`)
     }
@@ -61,11 +61,47 @@ const deleteArticle = async (req, res) => {
     const article = await Article.find({}).sort('createdAt')
     res.status(StatusCodes.OK).json({ article })
 }
+const likeArticle = async (req, res) => {
+    const { user: { userID }, params: { id: articleID } } = req
+    try {
+        const article = await Article.findById(articleID)
+        if(!article) {
+            throw new NotFoundError(`There's no article with the id: ${articleID}`)
+        }
+        if(article.likes.includes(userID)) {
+            throw new BadRequestError("You've already likes this post")
+        }
+        article.likes.push(userID)
+        await article.save()
+        res.status(StatusCodes.OK).json({ message: "Article liked.", likes: article.likes.length })
+    } catch(error) {
+        console.log(error)
+    }
+}
+const unlikeArticle = async (req, res) => {
+    const { user: { userID }, params: { id: articleID } } = req
+    try {
+        const article = await Article.findById(articleID)
+        if(!article) {
+            throw new NotFoundError(`There's no article with the id: ${articleID}`)
+        }
+        if(!article.likes.includes(userID)) {
+            throw new BadRequestError("You've not liked this post")
+        }
+        article.likes = article.likes.filter(userId => userId.toString() !== userID)
+        await article.save()
+        res.status(StatusCodes.OK).json({ message: "Article unliked.", likes: article.likes.length })
+    } catch(error) {
+        console.log(error)
+    }
+}
 
 module.exports = {
     getAllArticles,
     getArticle,
     createArticle,
     updateArticle,
-    deleteArticle
+    deleteArticle,
+    likeArticle,
+    unlikeArticle
 }

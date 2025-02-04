@@ -11,10 +11,10 @@ const ArticleSchema = mongoose.Schema({
         required: [true, "Please provide the content for your article."],
         minlength: 5
     },
-    // like: [{
-    //     type: mongoose.Schema.Types.ObjectId,
-    //     ref: 'User'
-    // }],
+    like: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    }],
     author: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
