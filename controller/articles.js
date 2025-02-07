@@ -7,7 +7,19 @@ const {
 } = require('../errors')
 
 const getAllArticles = async (req, res) => {
-    const article = await Article.find({ author: req.user.userID }).sort('createdAt')
+    const{ search } = req.query
+    const queryObject = {}
+    if(search) {
+        queryObject.$or = [
+            { title: { $regex: search, $options: "i" } },
+            { content: { $regex: search, $options: "i" } }
+        ]
+    }
+    queryObject.author = req.user.userID
+    const page = Number(req.query.page) || 1 
+    const limit = Number(req.query.limit) || 5
+    const skip = (page - 1) * limit 
+    const article = await Article.find(queryObject).sort('createdAt').skip(skip).limit(limit)
     res.status(StatusCodes.OK).json({ article, count: article.length })
 }
 const getArticle = async (req, res) => {
@@ -95,6 +107,24 @@ const unlikeArticle = async (req, res) => {
         console.log(error)
     }
 }
+const uploadArticle = async(req, res) => {
+    try {
+        console.log("Received request body:", req.body);
+        console.log("Received file:", req.file);
+        if (!req.file) {
+            throw new BadRequestError('Image file is required.')
+        }
+        const { title, content } = req.body;
+        const imageUrl = req.file.path; // Cloudinary returns the image URL in req.file.path
+
+        const newArticle = new Article({ title, content, imageUrl });
+        await newArticle.save();
+
+        res.status(StatusCodes.CREATED).json({ message: 'Article uploaded successfully', article: newArticle });
+    } catch (error) {
+        console.log(error)
+    }
+}
 
 module.exports = {
     getAllArticles,
@@ -103,5 +133,6 @@ module.exports = {
     updateArticle,
     deleteArticle,
     likeArticle,
-    unlikeArticle
+    unlikeArticle,
+    uploadArticle
 }
